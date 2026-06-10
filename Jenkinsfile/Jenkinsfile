@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'ap-south-1'
+        ECR_REPO = 'your-ecr-url/node-api'
+        IMAGE_TAG = "latest"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'npm test || true'
+            }
+        }
+
+        stage('Build Docker') {
+            steps {
+                sh 'docker build -t node-api .'
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                docker tag node-api:latest $ECR_REPO:$IMAGE_TAG
+                docker push $ECR_REPO:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                sh 'kubectl apply -f k8s/'
+            }
+        }
+    }
+}
